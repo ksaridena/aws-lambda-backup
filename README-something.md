@@ -1,21 +1,21 @@
-# 🛡️ GCP Identity Risk Auditor
-
-This script is designed for organization-wide audits of IAM credentials. It identifies high-risk Service Account keys, unrestricted API keys, and insecure OAuth clients, delivering a prioritized risk report to your inbox.
-
----
-
-## 📋 About the Script
-A focused security auditor that scans your entire Google Cloud Organization for identity-based vulnerabilities.
-
-### Key Identity Checks:
-* **Service Account Keys:** Flags keys > 90 days old, accounts with excessive user-managed keys, and keys attached to high-privilege roles (Owner/Editor).
-* **API Key Security:** Identifies "Unrestricted" API keys that lack necessary IP or API limits.
-* **OAuth & IAP:** Audits Identity-Aware Proxy brands and clients for secure configurations.
-* **Top 5 Risky Projects:** Ranks the most vulnerable projects in your organization using a weighted scoring engine.
-
----
 
 ## 🔐 Required Permissions
+The GCP Project that hosts this script needs to have the following APIs enabled
+
+| API | Purpose |
+| :--- | :--- |
+| `Cloud Run Admin API` | To host and run the Job itself. |
+| `Cloud Build API` | To convert your main.py into a container image. |
+| `Artifact Registry API` | To store the container image created by Cloud Build. |
+| `Cloud Scheduler API` | To handle the "once every 3 months" timer. |
+| `Cloud Resource Manager API` | To list the projects and folders in your Organization. |
+| `Identity and Access Management API` | To check Service Accounts and their keys. |
+| `API Keys API` | To check if API keys are restricted or unrestricted. |
+| `Cloud Identity-Aware Proxy API` | To check for Identity-Aware Proxy clients. |
+| `Gmail API` | To send the final audit report to your inbox. |
+| `Cloud Logging API` | To record script errors and project activity logs. |
+
+
 The executing Service Account requires these roles at the **Organization Level**:
 
 | Role | Purpose |
@@ -39,7 +39,16 @@ Perform these steps in the **IT-Automations** Project:
 
 ---
 
-## 🔑 Step 2: Assign Organization Roles (Console)
+##  🛠️  Step 2: Enable APIs (Console)
+Perform these steps in the **IT-Automations** Project:
+
+1. Navigate to **APIs & Services > Enabled APIs & Services**.
+2. Click **Enable APIs and Services**.
+3. Search for APIs & Services in the search window, enable all the APIs listed in requirements section. 
+
+---
+
+## 🔑 Step 3: Assign Organization Roles (Console)
 1. Switch the GCP Project Picker at the top of the console to your **Organization: aquent.com**.
 2. Go to **IAM & Admin > IAM**.
 3. Click **GRANT ACCESS**.
@@ -49,7 +58,7 @@ Perform these steps in the **IT-Automations** Project:
 
 ---
 
-## 📧Step 3: Google Workspace Delegation (Admin Console)
+## 📧Step 4: Google Workspace Delegation (Admin Console)
 To allow the Service Account to send emails via the Gmail API, a Workspace Super Admin must complete these steps:
 
 1. **Find Client ID**: In the GCP Console, go to **IAM & Admin > Service Accounts**. Click your SA, expand **Advanced Settings**, and copy the **Unique ID** (numeric Client ID).
@@ -62,7 +71,7 @@ To allow the Service Account to send emails via the Gmail API, a Workspace Super
 
 ---
 
-## ☁️ Step 4: Deploy Cloud Run Job (Cloud Shell)
+## ☁️ Step 5: Deploy Cloud Run Job (Cloud Shell)
 Execute these commands from the **Cloud Shell** of the **IT-Automations** Project:
 
 1. **Prepare Workspace**:
@@ -80,15 +89,17 @@ Execute these commands from the **Cloud Shell** of the **IT-Automations** Projec
    ```bash
    gcloud run jobs deploy gcp-identity-auditor \
     --source . \
+    --command python3 \
+    --args main.py \
     --tasks 1 \
-    --region us-central1 \
+    --region us-west1 \
     --service-account [SA_EMAIL] \
     --max-retries 0
    ```
 
 ---
 
-## 🧪 Step 5: Testing (Console)
+## 🧪 Step 6: Testing (Console)
 Verify the setup manually to ensure the automation works:
 
 1. Go to **Cloud Run > Jobs > gcp-identity-auditor** in the GCP Console.
@@ -97,7 +108,7 @@ Verify the setup manually to ensure the automation works:
 
 ---
 
-## ⏰Step 6: Quarterly Scheduling (Cloud Shell)
+## ⏰Step 7: Quarterly Scheduling (Cloud Shell)
 Schedule the script to run automatically at midnight on the 1st day of every quarter (Jan, Apr, July, Oct).
    ```bash
    gcloud scheduler jobs create http identity-audit-quarterly \
@@ -107,3 +118,4 @@ Schedule the script to run automatically at midnight on the 1st day of every qua
     --oauth-service-account-email=[SA_EMAIL] \
     --location=us-west1
    ```
+
