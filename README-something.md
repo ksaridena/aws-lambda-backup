@@ -1,0 +1,110 @@
+# 🛡️ GCP Identity Risk Auditor
+
+This repository contains an automated security tool designed for organization-wide audits of IAM credentials. It identifies high-risk Service Account keys, unrestricted API keys, and insecure OAuth clients, delivering a prioritized risk report to your inbox.
+
+---
+
+## 📋 About the Script
+A focused security auditor that scans your entire Google Cloud Organization for identity-based vulnerabilities.
+
+### Key Identity Checks:
+* **Service Account Keys:** Flags keys > 90 days old, accounts with excessive user-managed keys, and keys attached to high-privilege roles (Owner/Editor).
+* **API Key Security:** Identifies "Unrestricted" API keys that lack necessary IP or API limits.
+* **OAuth & IAP:** Audits Identity-Aware Proxy brands and clients for secure configurations.
+* **Top 5 Risky Projects:** Ranks the most vulnerable projects in your organization using a weighted scoring engine.
+
+---
+
+## 🔐 Required Permissions
+The executing Service Account requires these roles at the **Organization Level**:
+
+| Role | Purpose |
+| :--- | :--- |
+| `roles/resourcemanager.organizationViewer` | To list and discover all projects in the Organization. |
+| `roles/iam.securityReviewer` | To inspect IAM policies and Service Account key metadata. |
+| `roles/serviceusage.apiKeysViewer` | To audit API key restriction settings across the Org. |
+| `roles/iap.admin` | To audit OAuth/IAP client configurations. |
+
+---
+
+## 🛠️ Step 1: Create the Service Account (Console)
+Perform these steps in your dedicated **Automation Project**:
+
+1. Navigate to **IAM & Admin > Service Accounts** in the GCP Console.
+2. Click **+ CREATE SERVICE ACCOUNT**.
+3. **Details**: Name it `identity-auditor-sa` and click **Create and Continue**.
+4. **Roles**: Skip this step (click **Continue**) as we will grant roles at the Org level next.
+5. Click **Done**.
+6. **Copy the Email address** of the new Service Account.
+
+---
+
+## 🔑 Step 2: Assign Organization Roles (Console)
+1. Switch the GCP Project Picker at the top of the console to your **Organization**.
+2. Go to **IAM & Admin > IAM**.
+3. Click **GRANT ACCESS**.
+4. **Principals**: Paste the Service Account Email you copied in Step 1.
+5. **Roles**: Add the 4 roles listed in the **Required Permissions** table above.
+6. Click **Save**.
+
+---
+
+## ☁️ Step 3: Deploy Cloud Run Job (Cloud Shell)
+Execute these commands from the **Cloud Shell** of your **Automation Project**:
+
+1. **Prepare Workspace**:
+   ```bash
+   mkdir identity-audit && cd identity-audit
+   ```
+2. **Add Files**.
+   create main.py (the python script) and requirements.txt in the above folder
+   ```requirements.txt
+   google-cloud-resource-manager
+   google-api-python-client
+   google-auth
+   ```
+3. **Deploy** Replace [YOUR_SA_EMAIL] and [PROJECT_ID] with your specific details.
+   ```bash
+   gcloud run jobs deploy gcp-identity-auditor \
+    --source . \
+    --tasks 1 \
+    --region us-central1 \
+    --service-account [YOUR_SA_EMAIL] \
+    --max-retries 0
+    ```
+
+---
+
+## ⏰Step 4: Deploy Cloud Run Job (Cloud Shell)
+Schedule the script to run automatically at midnight on the 1st day of every quarter (Jan, Apr, July, Oct).
+   ```bash
+   gcloud scheduler jobs create http identity-audit-quarterly \
+    --schedule="0 0 1 1,4,7,10 *" \
+    --uri="[https://us-central1-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/](https://us-central1-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/)[PROJECT_ID]/jobs/gcp-identity-auditor:run" \
+    --http-method=POST \
+    --oauth-service-account-email=[YOUR_SA_EMAIL] \
+    --location=us-central1
+    ```
+
+---
+
+## 📧 Step 5: Google Workspace Delegation (Admin Console)
+To allow the Service Account to send emails via the Gmail API, a Workspace Super Admin must complete these steps:
+
+1. **Find Client ID**: In the GCP Console, go to **IAM & Admin > Service Accounts**. Click your SA, expand **Advanced Settings**, and copy the **Unique ID** (numeric Client ID).
+2. **Authorize**: Log into the [Google Workspace Admin Console](https://admin.google.com/).
+3. Navigate to **Security > Access and data control > API controls > Manage Domain-wide Delegation**.
+4. **Add New Entry**:
+   * **Client ID**: Paste your SA's Unique ID.
+   * **OAuth Scopes**: `https://www.googleapis.com/auth/gmail.send`
+5. Click **Authorize**.
+
+
+---
+
+## 🧪 Step 6: Testing (Console)
+Verify the setup manually to ensure the automation works:
+
+1. Go to **Cloud Run > Jobs > gcp-identity-auditor** in the GCP Console.
+2. Click **Execute**.
+3. Click the **Logs** tab. Look for "Process Finished" and verify that you have received the **GCP Identity Risk Audit** report in your inbox.
