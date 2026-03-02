@@ -49,7 +49,20 @@ Perform these steps in the **IT-Automations** Project:
 
 ---
 
-## ☁️ Step 3: Deploy Cloud Run Job (Cloud Shell)
+## 📧Step 3: Google Workspace Delegation (Admin Console)
+To allow the Service Account to send emails via the Gmail API, a Workspace Super Admin must complete these steps:
+
+1. **Find Client ID**: In the GCP Console, go to **IAM & Admin > Service Accounts**. Click your SA, expand **Advanced Settings**, and copy the **Unique ID** (numeric Client ID).
+2. **Authorize**: Log into the [Google Workspace Admin Console](https://admin.google.com/).
+3. Navigate to **Security > Access and data control > API controls > Manage Domain-wide Delegation**.
+4. **Add New Entry**:
+   * **Client ID**: Paste your SA's Unique ID.
+   * **OAuth Scopes**: `https://www.googleapis.com/auth/gmail.send`
+5. Click **Authorize**.
+
+---
+
+## ☁️ Step 4: Deploy Cloud Run Job (Cloud Shell)
 Execute these commands from the **Cloud Shell** of the **IT-Automations** Project:
 
 1. **Prepare Workspace**:
@@ -75,36 +88,22 @@ Execute these commands from the **Cloud Shell** of the **IT-Automations** Projec
 
 ---
 
-## ⏰Step 4: Quarterly Scheduling (Cloud Shell)
-Schedule the script to run automatically at midnight on the 1st day of every quarter (Jan, Apr, July, Oct).
-   ```bash
-   gcloud scheduler jobs create http identity-audit-quarterly \
-    --schedule="0 0 1 1,4,7,10 *" \
-    --uri="[https://us-central1-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/](https://us-central1-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/)[PROJECT_ID]/jobs/gcp-identity-auditor:run" \
-    --http-method=POST \
-    --oauth-service-account-email=[SA_EMAIL] \
-    --location=us-west1
-   ```
-
----
-
-## 📧Step 5: Google Workspace Delegation (Admin Console)
-To allow the Service Account to send emails via the Gmail API, a Workspace Super Admin must complete these steps:
-
-1. **Find Client ID**: In the GCP Console, go to **IAM & Admin > Service Accounts**. Click your SA, expand **Advanced Settings**, and copy the **Unique ID** (numeric Client ID).
-2. **Authorize**: Log into the [Google Workspace Admin Console](https://admin.google.com/).
-3. Navigate to **Security > Access and data control > API controls > Manage Domain-wide Delegation**.
-4. **Add New Entry**:
-   * **Client ID**: Paste your SA's Unique ID.
-   * **OAuth Scopes**: `https://www.googleapis.com/auth/gmail.send`
-5. Click **Authorize**.
-
-
----
-
-## 🧪 Step 6: Testing (Console)
+## 🧪 Step 5: Testing (Console)
 Verify the setup manually to ensure the automation works:
 
 1. Go to **Cloud Run > Jobs > gcp-identity-auditor** in the GCP Console.
 2. Click **Execute**.
 3. Click the **Logs** tab. Look for "Process Finished" and verify that you have received the **GCP Identity Risk Audit** report in your inbox.
+
+---
+
+## ⏰Step 6: Quarterly Scheduling (Cloud Shell)
+Schedule the script to run automatically at midnight on the 1st day of every quarter (Jan, Apr, July, Oct).
+   ```bash
+   gcloud scheduler jobs create http identity-audit-quarterly \
+    --schedule="0 0 1 1,4,7,10 *" \
+    --uri="[https://us-west1-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/](https://us-west1-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/)[PROJECT_ID]/jobs/gcp-identity-auditor:run" \
+    --http-method=POST \
+    --oauth-service-account-email=[SA_EMAIL] \
+    --location=us-west1
+   ```
