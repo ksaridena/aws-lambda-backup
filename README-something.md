@@ -1,3 +1,19 @@
+# 🛡️ GCP Identity Risk Auditor
+
+This script is designed for organization-wide audits of IAM credentials. It identifies high-risk Service Account keys, unrestricted API keys, and insecure OAuth clients, delivering a prioritized risk report to your inbox.
+
+---
+
+## 📋 About the Script
+A focused security auditor that scans your entire Google Cloud Organization for identity-based vulnerabilities.
+
+### Key Identity Checks:
+* **Service Account Keys:** Flags keys > 90 days old, accounts with excessive user-managed keys, and keys attached to high-privilege roles (Owner/Editor).
+* **API Key Security:** Identifies "Unrestricted" API keys that lack necessary IP or API limits.
+* **OAuth & IAP:** Audits Identity-Aware Proxy brands and clients for secure configurations.
+* **Top 5 Risky Projects:** Ranks the most vulnerable projects in your organization using a weighted scoring engine.
+
+---
 
 ## 🔐 Required Permissions
 The GCP Project that hosts this script needs to have the following APIs enabled
