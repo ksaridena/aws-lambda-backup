@@ -1,6 +1,6 @@
 # 🛡️ GCP Identity Risk Auditor
 
-This repository contains an automated security tool designed for organization-wide audits of IAM credentials. It identifies high-risk Service Account keys, unrestricted API keys, and insecure OAuth clients, delivering a prioritized risk report to your inbox.
+This script is designed for organization-wide audits of IAM credentials. It identifies high-risk Service Account keys, unrestricted API keys, and insecure OAuth clients, delivering a prioritized risk report to your inbox.
 
 ---
 
@@ -28,11 +28,11 @@ The executing Service Account requires these roles at the **Organization Level**
 ---
 
 ## 🛠️ Step 1: Create the Service Account (Console)
-Perform these steps in your dedicated **Automation Project**:
+Perform these steps in the **IT-Automations** Project:
 
 1. Navigate to **IAM & Admin > Service Accounts** in the GCP Console.
 2. Click **+ CREATE SERVICE ACCOUNT**.
-3. **Details**: Name it `identity-auditor-sa` and click **Create and Continue**.
+3. **Details**: Name it `gcp-auditor-sa` and click **Create and Continue**.
 4. **Roles**: Skip this step (click **Continue**) as we will grant roles at the Org level next.
 5. Click **Done**.
 6. **Copy the Email address** of the new Service Account.
@@ -40,7 +40,7 @@ Perform these steps in your dedicated **Automation Project**:
 ---
 
 ## 🔑 Step 2: Assign Organization Roles (Console)
-1. Switch the GCP Project Picker at the top of the console to your **Organization**.
+1. Switch the GCP Project Picker at the top of the console to your **Organization: aquent.com**.
 2. Go to **IAM & Admin > IAM**.
 3. Click **GRANT ACCESS**.
 4. **Principals**: Paste the Service Account Email you copied in Step 1.
@@ -50,45 +50,45 @@ Perform these steps in your dedicated **Automation Project**:
 ---
 
 ## ☁️ Step 3: Deploy Cloud Run Job (Cloud Shell)
-Execute these commands from the **Cloud Shell** of your **Automation Project**:
+Execute these commands from the **Cloud Shell** of the **IT-Automations** Project:
 
 1. **Prepare Workspace**:
    ```bash
    mkdir identity-audit && cd identity-audit
    ```
 2. **Add Files**.
-   create main.py (the python script) and requirements.txt in the above folder
+   create **main.py** (the python script) and **requirements.txt** with the following text in the above folder
    ```requirements.txt
    google-cloud-resource-manager
    google-api-python-client
    google-auth
    ```
-3. **Deploy** Replace [YOUR_SA_EMAIL] and [PROJECT_ID] with your specific details.
+3. **Deploy** Replace [SA_EMAIL] with the details from **Step1** above.
    ```bash
    gcloud run jobs deploy gcp-identity-auditor \
     --source . \
     --tasks 1 \
     --region us-central1 \
-    --service-account [YOUR_SA_EMAIL] \
+    --service-account [SA_EMAIL] \
     --max-retries 0
-    ```
+   ```
 
 ---
 
-## ⏰Step 4: Deploy Cloud Run Job (Cloud Shell)
+## ⏰Step 4: Quarterly Scheduling (Cloud Shell)
 Schedule the script to run automatically at midnight on the 1st day of every quarter (Jan, Apr, July, Oct).
    ```bash
    gcloud scheduler jobs create http identity-audit-quarterly \
     --schedule="0 0 1 1,4,7,10 *" \
     --uri="[https://us-central1-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/](https://us-central1-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/)[PROJECT_ID]/jobs/gcp-identity-auditor:run" \
     --http-method=POST \
-    --oauth-service-account-email=[YOUR_SA_EMAIL] \
-    --location=us-central1
-    ```
+    --oauth-service-account-email=[SA_EMAIL] \
+    --location=us-west1
+   ```
 
 ---
 
-## 📧 Step 5: Google Workspace Delegation (Admin Console)
+## 📧Step 5: Google Workspace Delegation (Admin Console)
 To allow the Service Account to send emails via the Gmail API, a Workspace Super Admin must complete these steps:
 
 1. **Find Client ID**: In the GCP Console, go to **IAM & Admin > Service Accounts**. Click your SA, expand **Advanced Settings**, and copy the **Unique ID** (numeric Client ID).
